@@ -1,0 +1,5 @@
+LIBRARY "PC_External Loader"
+
+EXPORTS
+TygerFrameworkPluginInitialize
+TygerFrameworkPluginRequiredVersion
