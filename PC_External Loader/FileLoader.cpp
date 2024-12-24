@@ -9,13 +9,13 @@
 #include <fstream>
 #include <string>
 
+namespace fs = std::filesystem;
 using namespace TyMemoryValues;
 
 typedef void* (*tyFileSys_Load) (char* fileName, int* pOutLen, char* pMemoryAllocated, int spaceAllocated);
 typedef int (*tyGetFMVSize) (char* fileName, int* pOutLen, bool unknown, int* alwaysNullPtr);
 tyGetFMVSize Original_tyGetFMVSize;
 tyFileSys_Load Original_tyFileSys_Load;
-static char PC_ExternalPath[0x121];
 
 char* ReadFile(std::ifstream* fileStream, int* pOutLen, char* pMemoryAllocated, int spaceAllocated) {
     int fSize = (int)(*fileStream).tellg();
@@ -44,12 +44,35 @@ char* ReadFile(std::ifstream* fileStream, int* pOutLen, char* pMemoryAllocated, 
     return NULL;
 }
 
+// Windows can't have a file with the same name but different casing, so the file name may be the same but the casing is different, so need to compare them both lowercase
+bool CaseInsensitiveCompare(const fs::path& path1, const fs::path& path2) {
+    std::string filename1 = path1.filename().string();
+    std::string filename2 = path2.filename().string();
+
+    // Convert both strings to lowercase
+    std::transform(filename1.begin(), filename1.end(), filename1.begin(), ::tolower);
+    std::transform(filename2.begin(), filename2.end(), filename2.begin(), ::tolower);
+
+    return filename1 == filename2;
+}
+
 void* FileSys_Load(char* fileName, int* pOutLen, char* pMemoryAllocated, int spaceAllocated) {
-    PC_ExternalPath[0] = 0;
-    sprintf_s(PC_ExternalPath, "PC_External\\%s", fileName);
-    std::ifstream fileStream(PC_ExternalPath, std::ios::binary | std::ios::ate);
+    fs::path filePath = "";
+    for (const auto entry : fs::recursive_directory_iterator("PC_External")) {
+        //Skip any folders
+        if (entry.is_directory())
+            continue;
+
+        if (CaseInsensitiveCompare(entry.path(), fileName))
+        {
+            filePath = entry.path();
+            break;
+        }
+    }
+    std::ifstream fileStream(filePath, std::ios::binary | std::ios::ate);
 
     //Just use the loading function from the game if the file doesn't exist in PC_External
+    //Will be invalid/null if the file doesn't exist in PC_External
     if (!fileStream)
         return Original_tyFileSys_Load(fileName, pOutLen, pMemoryAllocated, spaceAllocated);
     else {
@@ -79,7 +102,7 @@ void FileLoader::Init()
     // Get the offset the function call uses, which is a relative offset (can be negative and positive), so the address to the function is needed to be added on to get a non relative pointer, 
     // + 5 is added onto the end as the offset is relative from the ending of the function call, not the begining, and the function call is 5 bytes long.
     // It then gets cast as a function to be called later
-    TyMemoryValues::TyMalloc = (TyMalloc_t)(*(int*)(FileSys_LoadAddress + MallocOffset + 1) + (FileSys_LoadAddress + MallocOffset) + 5); // TY.exe+1B8972 - E8 C9DEFDFF - call TY.exe+196840 (Addresses from new patch)
+    TyMemoryValues::TyMalloc = (TyMalloc_t)(*(int*)(FileSys_LoadAddress + MallocOffset + 1) + (FileSys_LoadAddress + MallocOffset) + 5); // TY.exe+1B8972 - E8 C9DEFDFF - call TY.exe+196840 (Address and opcode from new patch)
     HookFailed = !HookTyLoadResources();
 }
 
