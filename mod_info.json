@@ -1,0 +1,12 @@
+{
+    "name": "PC_External Loader",
+    "dll_name": "PC_External Loader",
+    "description": "Loads most files from PC_External that normally wouldn't get loaded, and without the downsides of the debug OpenAL dll",
+    "version": "1.1.0",
+    "conflicts": [
+    ],
+    "author": "Kana (Elusive Fluffy)",
+    "download_url": "https://github.com/ElusiveFluffy/PC_External-Loader/releases/download/v1.1/Release.PC_External.Loader.v1.1.zip",
+    "icon_url": "https://raw.githubusercontent.com/ElusiveFluffy/PC_External-Loader/refs/heads/master/PC_External%20Loader.ico",
+    "last_updated": "2024-12-24"
+  }
